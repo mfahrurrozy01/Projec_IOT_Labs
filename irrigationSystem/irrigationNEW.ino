@@ -26,38 +26,31 @@ unsigned long lastRead = 0;
 int soilRaw = 0;
 int soilPercent = 0;
 
-// ============================================================
-// FUNGSI BUZZER - PASTIKAN OFF SECARA EKSPLESIT
-// ============================================================
-
 void buzzerOff() {
-  digitalWrite(PIN_BUZZER, HIGH);   // Pastikan pin LOW
-  delay(10);                        // Beri jeda kecil untuk stabilisasi
+  digitalWrite(PIN_BUZZER, HIGH);   
+  delay(10);                        
 }
 
 void beepPattern(int times, int duration, int pause) {
   for (int i = 0; i < times; i++) {
     digitalWrite(PIN_BUZZER, HIGH);
     delay(duration);
-    digitalWrite(PIN_BUZZER, LOW);   // MATIKAN di setiap iterasi
+    digitalWrite(PIN_BUZZER, LOW);   
     if (i < times - 1) delay(pause);
   }
-  buzzerOff();  // Pastikan mati setelah selesai
+  buzzerOff();  
 }
 
 void warningBeep() {
-  // biiip biiip biiip (500ms each, 200ms pause)
+  
   beepPattern(3, 500, 200);
 }
 
 void pumpingBeep() {
-  // bip bip bip (150ms each, 200ms pause)
+  
   beepPattern(3, 150, 200);
 }
 
-// ============================================================
-// FUNGSI LAIN
-// ============================================================
 
 int readSoilPercent() {
   long sum = 0;
@@ -85,39 +78,30 @@ void pumpControl(bool on) {
     pumpingBeep();
   } else {
     pumpStop = millis();
-    buzzerOff();  // PASTIKAN BUZZER MATI
+    buzzerOff();  
   }
 }
 
-// ============================================================
-// SETUP - INISIALISASI AMAN
-// ============================================================
-
 void setup() {
-  // LANGKAH 1: Set semua pin ke LOW SEBELUM pinMode
-  // Ini mencegah spike HIGH saat inisialisasi
   digitalWrite(PIN_RELAY, RELAY_OFF);
   digitalWrite(PIN_RED, LOW);
   digitalWrite(PIN_YELLOW, LOW);
   digitalWrite(PIN_GREEN, LOW);
-  digitalWrite(PIN_BUZZER, LOW);   // KRITIS: Pastikan buzzer LOW dulu
+  digitalWrite(PIN_BUZZER, LOW);   
   
-  // LANGKAH 2: Baru set pinMode
   pinMode(PIN_RELAY, OUTPUT);
   pinMode(PIN_RED, OUTPUT);
   pinMode(PIN_YELLOW, OUTPUT);
   pinMode(PIN_GREEN, OUTPUT);
   pinMode(PIN_BUZZER, OUTPUT);
   
-  // LANGKAH 3: Konfirmasi sekali lagi semua LOW
   digitalWrite(PIN_RELAY, RELAY_OFF);
   buzzerOff();
   setLeds(LOW, LOW, LOW);
 
   Serial.begin(115200);
-  delay(500);  // Tunggu serial stabil
+  delay(500);  
   
-  // Test LED sequence (buzzer TIDAK boleh bunyi)
   setLeds(HIGH, LOW, LOW); delay(300);
   setLeds(LOW, HIGH, LOW); delay(300);
   setLeds(LOW, LOW, HIGH); delay(300);
@@ -125,10 +109,6 @@ void setup() {
   
   Serial.println("AquaSense siap.");
 }
-
-// ============================================================
-// LOOP - SETIAP KONDISI MENGELOLA BUZZER SECARA EKSPLESIT
-// ============================================================
 
 void loop() {
   unsigned long now = millis();
@@ -140,36 +120,29 @@ void loop() {
     Serial.printf("Raw: %d | Kelembapan: %d%% | Pompa: %s\n", 
                   soilRaw, soilPercent, pumpOn ? "ON" : "OFF");
 
-    // === KONDISI 1: POMPA MATI ===
     if (!pumpOn) {
       bool cooldownDone = (pumpStop == 0) || (now - pumpStop >= PUMP_COOLDOWN);
       
       if (soilPercent < THRESHOLD_ON && cooldownDone) {
-        // Tanah kering - WARNING SEQUENCE
-        setLeds(HIGH, LOW, LOW);   // Merah
-        warningBeep();             // biiip biiip biiip
-        buzzerOff();               // PASTIKAN MATI setelah beep
-        delay(3000);               // Jeda 3 detik
+        setLeds(HIGH, LOW, LOW);   
+        warningBeep();             
+        buzzerOff();               
+        delay(3000);               
         
-        // Mulai pompa
         pumpControl(true);
       } else {
-        // Tanah lembab - AMAN
-        setLeds(LOW, LOW, HIGH);   // Hijau
-        buzzerOff();               // PASTIKAN MATI
+        setLeds(LOW, LOW, HIGH);   
+        buzzerOff();               
       }
     } 
-    // === KONDISI 2: POMPA NYALA ===
     else {
       if (soilPercent >= THRESHOLD_OFF || (now - pumpStart >= PUMP_MAX_TIME)) {
-        pumpControl(false);        // Matikan pompa
-        setLeds(LOW, LOW, HIGH);   // Kembali hijau
-        buzzerOff();               // PASTIKAN MATI
+        pumpControl(false);        
+        setLeds(LOW, LOW, HIGH);   
+        buzzerOff();               
       } else {
-        // Pompa masih nyala - kuning
-        setLeds(LOW, HIGH, LOW);   // Kuning
-        // Buzzer sudah mati setelah pumpingBeep() selesai
-        buzzerOff();               // Safety: pastikan tetap mati
+        setLeds(LOW, HIGH, LOW);   
+        buzzerOff();
       }
     }
   }
